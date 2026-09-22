@@ -1,0 +1,14 @@
+[Unit]
+Description=Restrict Docker published ports to trusted networks
+After=docker.service network-online.target
+Wants=docker.service network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/default/homelab-hardening
+ExecStart=/usr/local/sbin/homelab-firewall-rules
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+
