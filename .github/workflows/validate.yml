@@ -1,0 +1,47 @@
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Python dependencies
+        run: python3 -m pip install --requirement requirements.txt
+
+      - name: Check Python syntax
+        run: python3 -m compileall -q scripts
+
+      - name: Check shell syntax
+        run: bash -n scripts/*.sh
+
+      - name: Exercise AdGuard policy update
+        run: |
+          temporary_config="$(mktemp)"
+          printf '%s\n' 'dns:' '  cache_size: 1024' > "$temporary_config"
+          python3 scripts/update_adguard.py "$temporary_config"
+          python3 - "$temporary_config" <<'PY'
+          import sys
+          import yaml
+
+          with open(sys.argv[1], encoding="utf-8") as stream:
+              config = yaml.safe_load(stream)
+          assert config["dns"]["enable_dnssec"] is True
+          assert config["dns"]["upstream_dns"] == ["tls://dns.quad9.net"]
+          assert config["dns"]["cache_size"] >= 33_554_432
+          assert config["filtering"]["protection_enabled"] is True
+          PY
+
+      - name: Exercise Docker inventory parser
+        run: |
+          printf '%s\n' '[{"Name":"/proxy","Config":{"Image":"example/proxy:1"},"HostConfig":{"NetworkMode":"bridge","RestartPolicy":{"Name":"unless-stopped"},"Privileged":false,"CapAdd":null,"PortBindings":{}},"Mounts":[]}]' |
+            python3 scripts/docker_inventory_md.py |
+            grep -F '| proxy | example/proxy:1 | bridge | unless-stopped | False / - | - | - |'
