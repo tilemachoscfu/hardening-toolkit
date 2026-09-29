@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures
+import math
 import socket
 
 
@@ -13,6 +14,13 @@ def parse_ports(value: str) -> list[int]:
     if not ports or ports[0] < 1 or ports[-1] > 65535:
         raise argparse.ArgumentTypeError("ports must be between 1 and 65535")
     return ports
+
+
+def parse_timeout(value: str) -> float:
+    timeout = float(value)
+    if not math.isfinite(timeout) or timeout <= 0:
+        raise argparse.ArgumentTypeError("timeout must be a positive finite number")
+    return timeout
 
 
 def probe(host: str, port: int, timeout: float) -> int | None:
@@ -27,7 +35,7 @@ def main() -> None:
     )
     parser.add_argument("host")
     parser.add_argument("--ports", type=parse_ports, default=parse_ports("22,80,443"))
-    parser.add_argument("--timeout", type=float, default=0.25)
+    parser.add_argument("--timeout", type=parse_timeout, default=0.25)
     args = parser.parse_args()
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=min(64, len(args.ports))) as pool:
@@ -38,4 +46,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
