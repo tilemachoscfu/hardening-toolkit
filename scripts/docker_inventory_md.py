@@ -22,7 +22,7 @@ def main() -> None:
                 address = binding.get("HostIp") or "*"
                 ports.append(f"{address}:{binding.get('HostPort', '')}→{container_port}")
         mounts = "; ".join(
-            f"{mount['Source']}→{mount['Destination']} "
+            f"{mount.get('Source') or mount.get('Type', 'unknown')}→{mount['Destination']} "
             f"{'rw' if mount['RW'] else 'ro'}"
             for mount in container.get("Mounts", [])
         )
