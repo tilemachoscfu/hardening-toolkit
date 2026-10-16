@@ -4,7 +4,14 @@
 from __future__ import annotations
 
 import json
+import html
 import sys
+
+
+def cell(value: object) -> str:
+    """Keep inspect values inside one table cell; never emit raw input HTML."""
+    text = html.escape(str(value), quote=False)
+    return text.replace("|", "&#124;").replace("\r\n", "\n").replace("\r", "\n").replace("\n", "<br>")
 
 
 def main() -> None:
@@ -26,11 +33,9 @@ def main() -> None:
             f"{'rw' if mount['RW'] else 'ro'}"
             for mount in container.get("Mounts", [])
         )
-        print(
-            f"| {name} | {image} | {host['NetworkMode']} | "
-            f"{host['RestartPolicy']['Name']} | {host['Privileged']} / {caps} | "
-            f"{', '.join(ports) or '-'} | {mounts or '-'} |"
-        )
+        values = (name, image, host["NetworkMode"], host["RestartPolicy"]["Name"],
+                  f"{host['Privileged']} / {caps}", ", ".join(ports) or "-", mounts or "-")
+        print("| " + " | ".join(cell(value) for value in values) + " |")
 
 
 if __name__ == "__main__":
