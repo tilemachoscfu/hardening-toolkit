@@ -24,7 +24,10 @@ jobs:
         run: python3 -m unittest discover -s tests -v
 
       - name: Check shell syntax
-        run: bash -n scripts/*.sh
+        run: |
+          for script in scripts/*.sh; do
+            bash -n "$script" || exit 1
+          done
 
       - name: Exercise AdGuard policy update
         run: |
